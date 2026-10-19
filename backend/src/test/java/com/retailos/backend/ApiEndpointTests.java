@@ -114,4 +114,45 @@ public class ApiEndpointTests {
                 .andExpect(jsonPath("$[1].quantity").value(15))
                 .andExpect(jsonPath("$[2].quantity").value(32));
     }
+
+    @Test
+    public void searchesNames() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("q", "mIl"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("Whole Milk"));
+    }
+
+    @Test
+    public void trimsSearch() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("q", "  BREAD  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(2))
+                .andExpect(jsonPath("$[0].name").value("Wheat Bread"));
+    }
+
+    @Test
+    public void noSearchMatches() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("q", "soap"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    public void rejectsBlankSearch() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("q", ""))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/products/search").param("q", " \t "))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void requiresSearchQuery() throws Exception {
+        mockMvc.perform(get("/api/products/search"))
+                .andExpect(status().isBadRequest());
+    }
 }
