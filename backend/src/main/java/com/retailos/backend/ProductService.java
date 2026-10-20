@@ -1,83 +1,65 @@
 package com.retailos.backend;
 
 import org.springframework.stereotype.Service;
-import java.util.ArrayList;
+
+import jakarta.transaction.Transactional;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 @Service
 public class ProductService{
 
-    private final List<Product> products = new ArrayList<>(List.of(
-        new Product(1L, "Whole Milk", 24),
-        new Product(2L, "Wheat Bread", 15),
-        new Product(3L, "Paper Towels", 32)
-    ));
-    private long nextId = 4;
+    private final ProductRepository repository;
 
-    public synchronized List<Product> getProducts() {
-        return List.copyOf(products);
+    private Product toProduct(ProductEntity entity) {
+        return new Product(entity.getId(), entity.getName(), entity.getQuantity());
     }
 
-    public synchronized Optional<Product> findProductById(long id) {
+    public ProductService(ProductRepository repository) {
+        this.repository = repository;
+    }
 
-        for (Product product : products) {
-            if (product.id() == id) {
-                return Optional.of(product);
-            }
-        }
-        return Optional.empty();
+    public List<Product> getProducts() {
+        return repository.findAllByOrderByIdAsc().stream().map(this::toProduct).toList();
+    }
+
+    public Optional<Product> findProductById(long id) {
+        return repository.findById(id).map(this::toProduct);
     }
     
-    public synchronized List<Product> findLowStockProducts(int threshold){
-        ArrayList<Product> lowStockProducts = new ArrayList<>();
-        for (Product product : products) {
-            if (product.quantity() <= threshold) {
-                lowStockProducts.add(product);
-            }
-        }
-        return lowStockProducts;
+    public List<Product> findLowStockProducts(int threshold){
+        return repository.findByQuantityLessThanEqualOrderByIdAsc(threshold).stream().map(this::toProduct).toList();
     }
 
-    public synchronized List<Product> searchProducts(String query){
-        ArrayList<Product> matchingProducts = new ArrayList<>();
-        String normalizedQuery = query.strip().toLowerCase(Locale.ROOT);
-        for (Product product : products) {
-            if (product.name().toLowerCase(Locale.ROOT).contains(normalizedQuery)) {
-                matchingProducts.add(product);
-            }
-        }
-        return matchingProducts;
+    public List<Product> searchProducts(String query){
+        return repository.findByNameContainingIgnoreCaseOrderByIdAsc(query.strip()).stream().map(this::toProduct).toList();
     }
 
-    public synchronized Product addProduct(String name, int quantity){
-        Product newProduct = new Product(nextId, name.strip(), quantity);
-        nextId++;
-        products.add(newProduct);
-        return newProduct;
+    public Product addProduct(String name, int quantity){
+        ProductEntity entity = new ProductEntity(name.strip(), quantity);
+        ProductEntity savedEntity = repository.save(entity);
+        return toProduct(savedEntity);
     }
 
-    public synchronized Optional<Product> updateProduct(long id, String name, int quantity){
-        for (int i = 0; i < products.size(); i++) {
-            Product product = products.get(i);
-            if (product.id() == id) {
-                Product updatedProduct = new Product(id, name.strip(), quantity);
-                products.set(i, updatedProduct);
-                return Optional.of(updatedProduct);
-            }
+    @Transactional
+    public Optional<Product> updateProduct(long id, String name, int quantity){
+        Optional<ProductEntity> optionalEntity = repository.findById(id);
+        if(optionalEntity.isEmpty()){
+            return Optional.empty();
         }
-        return Optional.empty();
+        ProductEntity entity = optionalEntity.get();
+        entity.setName(name.strip());
+        entity.setQuantity(quantity);
+        ProductEntity updatedEntity = repository.save(entity);
+        return Optional.of(toProduct(updatedEntity));
     }
 
-    public synchronized boolean deleteProduct(long id){
-        for (int i = 0; i < products.size(); i++) {
-            Product product = products.get(i);
-            if (product.id() == id) {
-                products.remove(i);
-                return true;
-            }
+    @Transactional
+    public boolean deleteProduct(long id){
+        if(!repository.existsById(id)){
+            return false;
         }
-        return false;
+        repository.deleteById(id);
+        return true;
     }
 }

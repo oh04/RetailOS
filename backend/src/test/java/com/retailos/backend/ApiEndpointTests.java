@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class ApiEndpointTests {
+public class ApiEndpointTests extends DatabaseTests {
 
     @Autowired
     private MockMvc mockMvc;
