@@ -6,7 +6,6 @@ import java.util.List;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.Valid;
-
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,16 +16,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
-
 import java.util.Optional;
 
 @RestController 
 public class ProductController {
 
     private final ProductService productService;
+    private final InventoryCsvService inventoryCsvService;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, InventoryCsvService inventoryCsvService){
         this.productService = productService;
+        this.inventoryCsvService = inventoryCsvService;
     }
 
     @GetMapping("/api/products")
@@ -93,6 +93,14 @@ public class ProductController {
     @GetMapping("/api/products/expiring")
     public List<Product> getExpirationProducts(@RequestParam(name = "through") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate through){
         return productService.findExpiringProducts(through);
+    }
+
+    @GetMapping("/api/products/export")
+    public ResponseEntity<String> exportProducts(@RequestParam(name = "category", required = false) String category){
+        if(category != null && category.isBlank()){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "category not found");
+        }
+        return ResponseEntity.ok().header("Content-Type", "text/csv; charset=UTF-8").header("Content-Disposition", "attachment; filename=\"products.csv\"").body(inventoryCsvService.exportProducts(category));
     }
 
     @PostMapping("/api/products")
