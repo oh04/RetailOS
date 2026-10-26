@@ -1,5 +1,6 @@
 package com.retailos.backend;
 
+import java.time.LocalDate;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -18,8 +19,15 @@ public class ProductEntity {
     @Column(nullable = false, columnDefinition = "text")
     private String name;
 
+    @Column(nullable = false, columnDefinition = "text")
+    private String category = "Uncategorized";
+
     @Column(nullable = false)
     private int quantity;
+
+    @Column()
+    private LocalDate expirationDate;
+
 
     protected ProductEntity() {}
 
@@ -40,11 +48,27 @@ public class ProductEntity {
         return quantity;
     }
 
+    public String getCategory(){
+        return category;
+    }
+
+    public LocalDate getExpirationDate(){
+        return expirationDate;
+    }
+
     public void setName(String name) {
         this.name = name;
     }
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;
+    }
+
+    public void setCategory(String category){
+        this.category = category;
+    }
+
+    public void setExpirationDate(LocalDate expirationDate){
+        this.expirationDate = expirationDate;
     }
 }

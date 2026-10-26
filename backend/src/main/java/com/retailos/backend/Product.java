@@ -1,3 +1,5 @@
 package com.retailos.backend;
 
-public record Product(long id, String name, int quantity){}
+import java.time.LocalDate;
+
+public record Product(long id, String name, int quantity, String category, LocalDate expirationDate){}
