@@ -12,18 +12,10 @@ import jakarta.persistence.Table;
 @Table(name = "products")
 public class ProductEntity {
     
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Id
-    private Long id;
-
-    @Column(nullable = false, columnDefinition = "text")
-    private String name;
-
-    @Column(nullable = false, columnDefinition = "text")
-    private String category = "Uncategorized";
-
-    @Column(nullable = false)
-    private int quantity;
+    @GeneratedValue(strategy = GenerationType.IDENTITY) @Id private Long id;
+    @Column(nullable = false, columnDefinition = "text") private String name;
+    @Column(nullable = false, columnDefinition = "text") private String category = "Uncategorized";
+    @Column(nullable = false) private int quantity;
 
     @Column()
     private LocalDate expirationDate;
