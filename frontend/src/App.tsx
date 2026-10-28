@@ -1,6 +1,6 @@
 import './App.css'
-import type {Product} from './types'
-import {useState} from 'react'
+import type { Product } from './types'
+import { useState } from 'react'
 import TaskPanel from './TaskPanel'
 import SummaryPanel from './SummaryPanel'
 import StockHistoryPanel from './StockHistoryPanel'
@@ -22,8 +22,13 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [adjustingId, setAdjustingId] = useState<number | null>(null)
   const [adjustError, setAdjustError] = useState('')
-  const [adjustSuccess, setAdjustSuccess] = useState('')  
+  const [adjustSuccess, setAdjustSuccess] = useState('')
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleteSuccess, setDeleteSuccess] = useState('')
+  const [stockAmount, setStockAmount] = useState('1')
 
   async function loadProducts() {
     setLoading(true)
@@ -46,14 +51,16 @@ function App() {
     }
   }
 
-  async function createProduct() {
+  async function saveProduct() {
+    const isEditing = editingId !== null
+    const url = isEditing ? `/api/products/${editingId}` : '/api/products'
     setCreating(true)
     setCreateError('')
     setCreateSuccess('')
 
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -69,20 +76,26 @@ function App() {
         throw new Error('Creation failed')
       }
 
-      setName('')
-      setQuantity('0')
+      resetProductForm()
+      setCreateSuccess(isEditing ? 'Product updated successfully.' : 'Product created successfully.')
       await loadProducts()
-      setCategory('')
-      setExpirationDate('')
-      setCreateSuccess("Product created successfully.")
     } catch {
-      setCreateError('Could not create the product. Check your inputs and retry.')
+      setCreateError('Could not save the product. Check your inputs and retry.')
     } finally {
       setCreating(false)
     }
   }
 
   async function adjustStock(id: number, change: number) {
+    if (
+      !Number.isInteger(change) ||
+      change === 0 ||
+      Math.abs(change) > 2147483647
+    ) {
+      setAdjustError('Enter a whole adjustment amount between 1 and 2147483647.')
+      setAdjustSuccess('')
+      return
+    }
     setAdjustingId(id)
     setAdjustError('')
     setAdjustSuccess('')
@@ -109,9 +122,62 @@ function App() {
     }
   }
 
-  const visibleProducts = products.filter((product) => product.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
-  const inventoryBusy = loading || creating || adjustingId !== null
+  async function deleteProduct(product: Product) {
+    if (!window.confirm(`Delete "${product.name}"? This cannot be undone.`)) {
+      return
+    }
 
+    setDeletingId(product.id)
+    setDeleteError('')
+    setDeleteSuccess('')
+
+    try {
+      const response = await fetch(`/api/products/${product.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Deletion failed')
+      }
+
+      if (editingId === product.id) {
+        resetProductForm()
+      }
+      if (selectedProduct !== null && selectedProduct.id === product.id) {
+        setSelectedProduct(null)
+      }
+
+      setDeleteSuccess('Product deleted successfully.')
+      await loadProducts()
+    } catch {
+      setDeleteError('Could not delete the product. Reload inventory and retry.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  function startEditing(product: Product) {
+    setEditingId(product.id)
+    setName(product.name)
+    setQuantity(String(product.quantity))
+    setCategory(product.category)
+    setExpirationDate(product.expirationDate ?? '')
+    setCreateError('')
+    setCreateSuccess('')
+  }
+
+  function resetProductForm() {
+    setEditingId(null)
+    setName('')
+    setCategory('')
+    setExpirationDate('')
+    setQuantity('0')
+  }
+
+  const visibleProducts = products.filter((product) => product.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+  const inventoryBusy = loading || creating || adjustingId !== null || deletingId !== null
+  const adjustmentAmount = Number(stockAmount)
+  const validStockAmount = Number.isInteger(adjustmentAmount) && adjustmentAmount >= 1 && adjustmentAmount <= 2147483647
   return (
     <main className="app">
       <header>
@@ -120,111 +186,128 @@ function App() {
       </header>
       <SummaryPanel />
       <section>
-          <h2>Inventory</h2>
-          <form
-            className="product-form"
-            onSubmit={(event) => {
-              event.preventDefault()
-              void createProduct()
-            }}
-          >
-            <label>
-              Product name
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-              />
-            </label>
-
-            <label>
-              Quantity
-              <input
-                type = "number"
-                value = {quantity}
-                onChange={(event) => setQuantity(event.target.value)}
-                required
-                min = "0"
-                max = "2147483647"
-                step = "1"
-              />
-            </label>
-            <label>
-              Category
-              <input
-                value = {category}
-                onChange = {(event) => setCategory(event.target.value)}
-                placeholder = "Uncategorized"
-              />
-            </label>
-            <label>
-              Expiration date
-              <input
-                type = "date"
-                value = {expirationDate}
-                onChange = {(event) => setExpirationDate(event.target.value)}
-              />
-            </label>
-            <button type="submit" disabled={inventoryBusy}>
-              {creating ? 'Creating…' : 'Create product'}
-            </button>
-          </form>
-          {createError && <p role="alert">{createError}</p>}
-          {createSuccess && <p role="status">{createSuccess}</p>}
-          <button type="button" onClick={loadProducts} disabled={inventoryBusy}>
-            {loading ? 'Loading…' : 'Load inventory'}
-          </button>
-          {error && <p role="alert">{error}</p>}
-          {hasLoaded && !loading && !error && visibleProducts.length === 0 && (<p>{products.length === 0 ? 'No products in inventory yet.' : 'No products match your search.'}</p>)}
-          {adjustError && <p role="alert">{adjustError}</p>}
-          {adjustSuccess && <p role="status">{adjustSuccess}</p>}
-          <a className="download-link" href="/api/products/export">Download all inventory (CSV)</a>
+        <h2>Inventory</h2>
+        <form
+          className="product-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void saveProduct()
+          }}
+        >
           <label>
-            Search products
+            Product name
             <input
-              type = "search"
-              value = {searchQuery}
-              onChange = {(event) => setSearchQuery(event.target.value)}
-              placeholder = "Search by product name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              required
             />
           </label>
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Category</th>
-                <th>Expires</th>
-                <th>Actions</th>
+
+          <label>
+            Quantity
+            <input
+              type="number"
+              value={quantity}
+              onChange={(event) => setQuantity(event.target.value)}
+              required
+              min="0"
+              max="2147483647"
+              step="1"
+            />
+          </label>
+          <label>
+            Category
+            <input
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              placeholder="Uncategorized"
+            />
+          </label>
+          <label>
+            Expiration date
+            <input
+              type="date"
+              value={expirationDate}
+              onChange={(event) => setExpirationDate(event.target.value)}
+            />
+          </label>
+          <button type="submit" disabled={inventoryBusy}>
+            {creating ? 'Saving…' : editingId !== null ? 'Save changes' : 'Create product'}
+          </button>
+          {editingId !== null && (
+            <button type="button" onClick={resetProductForm} disabled={inventoryBusy}>
+              Cancel edit
+            </button>
+          )}
+        </form>
+        {createError && <p role="alert">{createError}</p>}
+        {createSuccess && <p role="status">{createSuccess}</p>}
+        <button type="button" onClick={loadProducts} disabled={inventoryBusy}>
+          {loading ? 'Loading…' : 'Load inventory'}
+        </button>
+        {error && <p role="alert">{error}</p>}
+        {hasLoaded && !loading && !error && visibleProducts.length === 0 && (<p>{products.length === 0 ? 'No products in inventory yet.' : 'No products match your search.'}</p>)}
+        {adjustError && <p role="alert">{adjustError}</p>}
+        {adjustSuccess && <p role="status">{adjustSuccess}</p>}
+        {deleteError && <p role="alert">{deleteError}</p>}
+        {deleteSuccess && <p role="status">{deleteSuccess}</p>}
+        <a className="download-link" href="/api/products/export">Download all inventory (CSV)</a>
+        <label>
+          Search products
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search by product name"
+          />
+        </label>
+        <label>
+          Units to receive or sell
+          <input type="number" value={stockAmount} onChange={(event) => setStockAmount(event.target.value)} min="1" max="2147483647" step="1" disabled={inventoryBusy} />
+        </label>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Category</th>
+              <th>Expires</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleProducts.map((product) => (
+              <tr key={product.id}>
+                <td>{product.id}</td>
+                <td>{product.name}</td>
+                <td>{product.quantity}</td>
+                <td>{product.category}</td>
+                <td>{product.expirationDate ?? '-'}</td>
+                <td>
+                  <button type="button" onClick={() => void adjustStock(product.id, adjustmentAmount)} disabled={inventoryBusy || !validStockAmount}>
+                    Receive
+                  </button>
+                  <button type="button" onClick={() => void adjustStock(product.id, -adjustmentAmount)} disabled={inventoryBusy || !validStockAmount || product.quantity < adjustmentAmount}>
+                    Sell
+                  </button>
+                  <button type="button" onClick={() => setSelectedProduct(product)}>
+                    History
+                  </button>
+                  <button type="button" onClick={() => startEditing(product)} disabled={inventoryBusy}>
+                    Edit
+                  </button>
+                  <button type="button" onClick={() => void deleteProduct(product)} disabled={inventoryBusy}>
+                    Delete
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {visibleProducts.map((product) => (
-                <tr key={product.id}>
-                  <td>{product.id}</td>
-                  <td>{product.name}</td>
-                  <td>{product.quantity}</td>
-                  <td>{product.category}</td>
-                  <td>{product.expirationDate ?? '-'}</td>
-                  <td>
-                    <button type="button" onClick={() => void adjustStock(product.id, 1)} disabled={inventoryBusy}>
-                      Receive 1
-                    </button>
-                    <button type="button" onClick={() => void adjustStock(product.id, -1)} disabled={inventoryBusy || product.quantity === 0}>
-                      Sell 1
-                    </button>
-                    <button type="button" onClick={() => setSelectedProduct(product)}>
-                      History
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </tbody>
+        </table>
       </section>
       {selectedProduct !== null && (
-        <StockHistoryPanel key={selectedProduct.id} product={selectedProduct} onClose={() => setSelectedProduct(null)}/>
+        <StockHistoryPanel key={selectedProduct.id} product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
       <ExpirationReport />
       <TaskPanel />
