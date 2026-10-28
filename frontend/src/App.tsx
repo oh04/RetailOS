@@ -2,6 +2,10 @@ import './App.css'
 import type {Product} from './types'
 import {useState} from 'react'
 import TaskPanel from './TaskPanel'
+import SummaryPanel from './SummaryPanel'
+import StockHistoryPanel from './StockHistoryPanel'
+import ExpirationReport from './ExpirationReport'
+import OverdueReport from './OverdueReport'
 
 function App() {
   const [name, setName] = useState('')
@@ -16,6 +20,10 @@ function App() {
   const [expirationDate, setExpirationDate] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [adjustingId, setAdjustingId] = useState<number | null>(null)
+  const [adjustError, setAdjustError] = useState('')
+  const [adjustSuccess, setAdjustSuccess] = useState('')  
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   async function loadProducts() {
     setLoading(true)
@@ -74,9 +82,35 @@ function App() {
     }
   }
 
-  const visibleProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
-  )
+  async function adjustStock(id: number, change: number) {
+    setAdjustingId(id)
+    setAdjustError('')
+    setAdjustSuccess('')
+
+    try {
+      const response = await fetch(`/api/products/${id}/adjustments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ change }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Adjustment failed')
+      }
+
+      setAdjustSuccess('Stock updated successfully.')
+      await loadProducts()
+    } catch {
+      setAdjustError('Could not adjust stock. Reload inventory and check the backend.')
+    } finally {
+      setAdjustingId(null)
+    }
+  }
+
+  const visibleProducts = products.filter((product) => product.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+  const inventoryBusy = loading || creating || adjustingId !== null
 
   return (
     <main className="app">
@@ -84,6 +118,7 @@ function App() {
         <h1>RetailOS</h1>
         <p>Your store operations workspace.</p>
       </header>
+      <SummaryPanel />
       <section>
           <h2>Inventory</h2>
           <form
@@ -130,17 +165,19 @@ function App() {
                 onChange = {(event) => setExpirationDate(event.target.value)}
               />
             </label>
-            <button type="submit" disabled={creating || loading}>
+            <button type="submit" disabled={inventoryBusy}>
               {creating ? 'Creating…' : 'Create product'}
             </button>
           </form>
           {createError && <p role="alert">{createError}</p>}
           {createSuccess && <p role="status">{createSuccess}</p>}
-          <button type="button" onClick={loadProducts} disabled={loading || creating}>
+          <button type="button" onClick={loadProducts} disabled={inventoryBusy}>
             {loading ? 'Loading…' : 'Load inventory'}
           </button>
           {error && <p role="alert">{error}</p>}
           {hasLoaded && !loading && !error && visibleProducts.length === 0 && (<p>{products.length === 0 ? 'No products in inventory yet.' : 'No products match your search.'}</p>)}
+          {adjustError && <p role="alert">{adjustError}</p>}
+          {adjustSuccess && <p role="status">{adjustSuccess}</p>}
           <a className="download-link" href="/api/products/export">Download all inventory (CSV)</a>
           <label>
             Search products
@@ -159,6 +196,7 @@ function App() {
                 <th>Quantity</th>
                 <th>Category</th>
                 <th>Expires</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -169,12 +207,28 @@ function App() {
                   <td>{product.quantity}</td>
                   <td>{product.category}</td>
                   <td>{product.expirationDate ?? '-'}</td>
+                  <td>
+                    <button type="button" onClick={() => void adjustStock(product.id, 1)} disabled={inventoryBusy}>
+                      Receive 1
+                    </button>
+                    <button type="button" onClick={() => void adjustStock(product.id, -1)} disabled={inventoryBusy || product.quantity === 0}>
+                      Sell 1
+                    </button>
+                    <button type="button" onClick={() => setSelectedProduct(product)}>
+                      History
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
       </section>
+      {selectedProduct !== null && (
+        <StockHistoryPanel key={selectedProduct.id} product={selectedProduct} onClose={() => setSelectedProduct(null)}/>
+      )}
+      <ExpirationReport />
       <TaskPanel />
+      <OverdueReport />
     </main>
   )
 }

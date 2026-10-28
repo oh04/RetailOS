@@ -13,6 +13,7 @@ function TaskPanel() {
     const [createSuccess, setCreateSuccess] = useState('')
     const [updatingId, setUpdatingId] = useState<number | null>(null)
     const [updateError, setUpdateError] = useState('')
+    const [statusFilter, setStatusFilter] = useState('ALL')
 
   async function loadTasks() {
     setLoading(true)
@@ -20,7 +21,7 @@ function TaskPanel() {
     try {
         const response = await fetch('/api/tasks')
         if (!response.ok) {
-        throw new Error('Request failed')
+          throw new Error('Request failed')
         }
 
         const data: Task[] = await response.json()
@@ -31,9 +32,9 @@ function TaskPanel() {
     } finally {
         setLoading(false)
     }
-}
+  }
 
-async function createTask() {
+  async function createTask() {
     setCreating(true)
     setCreateError('')
     setCreateSuccess('')
@@ -65,7 +66,7 @@ async function createTask() {
     }
   }
 
-async function updateTaskStatus(id: number, status: TaskStatus) {
+  async function updateTaskStatus(id: number, status: TaskStatus) {
     setUpdatingId(id)
     setUpdateError('')
 
@@ -88,11 +89,13 @@ async function updateTaskStatus(id: number, status: TaskStatus) {
     } finally {
         setUpdatingId(null)
     }
-}
+  }
 
-const busy = loading || creating || updatingId !== null
+  const busy = loading || creating || updatingId !== null
 
-return (
+  const visibleTasks = tasks.filter((task) => statusFilter === 'ALL' || task.status === statusFilter)
+
+  return (
     <section>
         <h2>Employee tasks</h2>
         <form className="product-form" onSubmit={(event) => {
@@ -124,26 +127,39 @@ return (
         <button type = "button" onClick = {loadTasks} disabled = {busy}>
             {loading ? 'Loading...' : 'Load tasks'}
         </button>
+        <label>
+            Filter by status
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                <option value="ALL">All tasks</option>
+                <option value="TODO">To do</option>
+                <option value="IN_PROGRESS">In progress</option>
+                <option value="DONE">Done</option>
+            </select>
+        </label>
         {updateError && <p role="alert">{updateError}</p>}
         {error && <p role="alert">{error}</p>}
-        {hasLoaded && !loading && !error && tasks.length === 0 && (<p>No tasks yet.</p>)}
+        {hasLoaded && !loading && !error && visibleTasks.length === 0 && (<p>{tasks.length === 0 ? 'No tasks yet.' : 'No tasks match this status.'}</p>)}
         <table>
             <thead>
               <tr>
                 <th>Task</th>
                 <th>Status</th>
                 <th>Due date</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-                {tasks.map((task) => (
+                {visibleTasks.map((task) => (
                     <tr key={task.id}>
                     <td>{task.title}</td>
                     <td>{task.status}</td>
                     <td>{task.dueDate ?? '-'}</td>
                     <td>
-                        <button type = "button" onClick = {() => void updateTaskStatus(task.id, 'IN_PROGRESS')} disabled = {busy || task.status === 'IN_PROGRESS'}>
+                        <button type="button" onClick = {() => void updateTaskStatus(task.id, 'IN_PROGRESS')} disabled={busy || task.status === 'IN_PROGRESS'}>
                             Start
+                        </button>
+                        <button type="button" onClick={() => void updateTaskStatus(task.id, 'DONE')} disabled={busy || task.status === 'DONE'}>
+                            Complete
                         </button>
                     </td>
                     </tr>

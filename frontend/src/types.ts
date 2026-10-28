@@ -15,3 +15,17 @@ export type Task = {
   createdAt: string
   dueDate: string | null
 }
+
+export type InventorySummary = {
+  productCount: number
+  totalUnits: number
+  lowStockCount: number
+}
+
+export type StockAdjustment = {
+  id: number
+  productId: number
+  change: number
+  resultingQuantity: number
+  createdAt: string
+}
