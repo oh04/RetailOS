@@ -1,6 +1,7 @@
 import './App.css'
 import type {Product} from './types'
 import {useState} from 'react'
+import TaskPanel from './TaskPanel'
 
 function App() {
   const [name, setName] = useState('')
@@ -14,6 +15,7 @@ function App() {
   const [category, setCategory] = useState('')
   const [expirationDate, setExpirationDate] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
 
   async function loadProducts() {
     setLoading(true)
@@ -62,15 +64,19 @@ function App() {
       setName('')
       setQuantity('0')
       await loadProducts()
+      setCategory('')
+      setExpirationDate('')
+      setCreateSuccess("Product created successfully.")
     } catch {
       setCreateError('Could not create the product. Check your inputs and retry.')
     } finally {
       setCreating(false)
     }
-    setCategory('')
-    setExpirationDate('')
-    setCreateSuccess("Product created successfully.")
   }
+
+  const visibleProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  )
 
   return (
     <main className="app">
@@ -134,9 +140,17 @@ function App() {
             {loading ? 'Loading…' : 'Load inventory'}
           </button>
           {error && <p role="alert">{error}</p>}
-          {hasLoaded && !loading && !error && products.length === 0 && (
-            <p>No products in inventory yet.</p>
-          )}
+          {hasLoaded && !loading && !error && visibleProducts.length === 0 && (<p>{products.length === 0 ? 'No products in inventory yet.' : 'No products match your search.'}</p>)}
+          <a className="download-link" href="/api/products/export">Download all inventory (CSV)</a>
+          <label>
+            Search products
+            <input
+              type = "search"
+              value = {searchQuery}
+              onChange = {(event) => setSearchQuery(event.target.value)}
+              placeholder = "Search by product name"
+            />
+          </label>
           <table>
             <thead>
               <tr>
@@ -148,7 +162,7 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
+              {visibleProducts.map((product) => (
                 <tr key={product.id}>
                   <td>{product.id}</td>
                   <td>{product.name}</td>
@@ -160,6 +174,7 @@ function App() {
             </tbody>
           </table>
       </section>
+      <TaskPanel />
     </main>
   )
 }

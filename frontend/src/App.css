@@ -36,3 +36,8 @@ th, td {
 .product-form input {
   padding: 8px;
 }
+
+.download-link {
+  display: inline-block;
+  margin: 12px 0 12px 16px;
+}

@@ -5,3 +5,13 @@ export type Product = {
   category: string
   expirationDate: string | null
 }
+
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE'
+
+export type Task = {
+  id: number
+  title: string
+  status: TaskStatus
+  createdAt: string
+  dueDate: string | null
+}
