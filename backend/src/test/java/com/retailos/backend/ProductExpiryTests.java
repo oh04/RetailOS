@@ -1,5 +1,7 @@
 package com.retailos.backend;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(roles = "MANAGER")
 class ProductExpiryTests extends DatabaseTests {
     @Autowired private MockMvc mvc;
     @Autowired private JdbcTemplate jdbc;
@@ -36,7 +39,7 @@ class ProductExpiryTests extends DatabaseTests {
     }
     @Test
     void createsExpiry() throws Exception {
-        mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Yogurt\",\"quantity\":5,\"expirationDate\":\"2030-06-15\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.expirationDate").value("2030-06-15"));
@@ -47,11 +50,11 @@ class ProductExpiryTests extends DatabaseTests {
 
     @Test
     void changesAndClearsExpiry() throws Exception {
-        mvc.perform(put("/api/products/1").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/products/1").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Whole Milk\",\"quantity\":24,\"expirationDate\":\"2030-07-01\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.expirationDate").value("2030-07-01"));
-        mvc.perform(put("/api/products/1").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/products/1").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Whole Milk\",\"quantity\":24,\"expirationDate\":null}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.expirationDate").value(nullValue()));
@@ -66,9 +69,9 @@ class ProductExpiryTests extends DatabaseTests {
     void rejectsBadDates() throws Exception {
         for (String date : new String[]{"tomorrow", "2030-13-01", "2030-02-30"}) {
             String body = "{\"name\":\"Milk\",\"quantity\":24,\"expirationDate\":\"" + date + "\"}";
-            mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
-            mvc.perform(put("/api/products/1").contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(put("/api/products/1").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }
     }

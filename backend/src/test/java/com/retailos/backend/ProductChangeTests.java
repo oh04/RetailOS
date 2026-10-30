@@ -1,5 +1,7 @@
 package com.retailos.backend;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@WithMockUser(roles = "MANAGER")
 class ProductChangeTests extends DatabaseTests {
 
     @Autowired
@@ -22,7 +25,7 @@ class ProductChangeTests extends DatabaseTests {
     @Test
     void updatesProduct() throws Exception {
         mockMvc.perform(put("/api/products/2")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"  White Bread  ","quantity":4}
                                 """))
@@ -53,7 +56,7 @@ class ProductChangeTests extends DatabaseTests {
 
         for (String request : requests) {
             mockMvc.perform(put("/api/products/2")
-                            .contentType(MediaType.APPLICATION_JSON)
+                            .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                             .content(request))
                     .andExpect(status().isBadRequest());
         }
@@ -67,7 +70,7 @@ class ProductChangeTests extends DatabaseTests {
     @Test
     void missingUpdate() throws Exception {
         mockMvc.perform(put("/api/products/999")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Bread","quantity":4}
                                 """))
@@ -80,7 +83,7 @@ class ProductChangeTests extends DatabaseTests {
 
     @Test
     void deletesProduct() throws Exception {
-        mockMvc.perform(delete("/api/products/2"))
+        mockMvc.perform(delete("/api/products/2").with(csrf()))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
@@ -98,7 +101,7 @@ class ProductChangeTests extends DatabaseTests {
 
     @Test
     void missingDelete() throws Exception {
-        mockMvc.perform(delete("/api/products/999"))
+        mockMvc.perform(delete("/api/products/999").with(csrf()))
                 .andExpect(status().isNotFound());
 
         mockMvc.perform(get("/api/products"))
@@ -108,11 +111,11 @@ class ProductChangeTests extends DatabaseTests {
 
     @Test
     void keepsIdsAfterDelete() throws Exception {
-        mockMvc.perform(delete("/api/products/2"))
+        mockMvc.perform(delete("/api/products/2").with(csrf()))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Apples","quantity":0}
                                 """))

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { Product, StockAdjustment } from './types'
+import { apiFetch } from './api'
 
 type Props = {
-  product: Product
-  onClose: () => void
+    product: Product
+    onClose: () => void
 }
 
 function StockHistoryPanel({ product, onClose }: Props) {
@@ -14,12 +15,12 @@ function StockHistoryPanel({ product, onClose }: Props) {
     const [page, setPage] = useState(0)
     const pageSize = 5
 
-    async function loadHistory(requestedPage: number){
-  
+    async function loadHistory(requestedPage: number) {
+
         try {
             setLoading(true)
             setError('')
-            const response = await fetch(`/api/products/${product.id}/adjustments?limit=${pageSize}&page=${requestedPage}`)
+            const response = await apiFetch(`/api/products/${product.id}/adjustments?limit=${pageSize}&page=${requestedPage}`)
             if (!response.ok) {
                 throw new Error('Request failed')
             }

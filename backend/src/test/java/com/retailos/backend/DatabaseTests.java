@@ -26,7 +26,7 @@ abstract class DatabaseTests {
 
     @BeforeEach
     void resetProducts() {
-        jdbc.execute("TRUNCATE TABLE tasks, stock_adjustments, products RESTART IDENTITY");
+        jdbc.execute("TRUNCATE TABLE app_users, tasks, stock_adjustments, products RESTART IDENTITY");
         jdbc.update("INSERT INTO products (name, quantity) VALUES (?, ?)", "Whole Milk", 24);
         jdbc.update("INSERT INTO products (name, quantity) VALUES (?, ?)", "Wheat Bread", 15);
         jdbc.update("INSERT INTO products (name, quantity) VALUES (?, ?)", "Paper Towels", 32);

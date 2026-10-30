@@ -1,5 +1,7 @@
 package com.retailos.backend;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(roles = "MANAGER")
 class TaskApiTests extends DatabaseTests {
     @Autowired private MockMvc mvc;
     @Autowired private JdbcTemplate jdbc;
@@ -40,7 +43,7 @@ class TaskApiTests extends DatabaseTests {
     void changesStatus() throws Exception {
         create();
         for (String value : new String[]{"IN_PROGRESS", "DONE", "TODO"}) {
-            mvc.perform(patch("/api/tasks/1/status").contentType(MediaType.APPLICATION_JSON)
+            mvc.perform(patch("/api/tasks/1/status").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"status\":\"" + value + "\"}"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value(value))
@@ -54,7 +57,7 @@ class TaskApiTests extends DatabaseTests {
     void missingTask() throws Exception {
         mvc.perform(get("/api/tasks/999"))
                 .andExpect(status().isNotFound());
-        mvc.perform(patch("/api/tasks/999/status").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(patch("/api/tasks/999/status").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"DONE\"}"))
                 .andExpect(status().isNotFound());
     }
@@ -62,7 +65,7 @@ class TaskApiTests extends DatabaseTests {
     @Test
     void rejectsBadTitle() throws Exception {
         for (String body : new String[]{"{}", "{\"title\":null}", "{\"title\":\"\"}", "{\"title\":\"   \"}"}) {
-            mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(post("/api/tasks").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }
         mvc.perform(get("/api/tasks"))
@@ -73,7 +76,7 @@ class TaskApiTests extends DatabaseTests {
     void rejectsBadStatus() throws Exception {
         create();
         for (String body : new String[]{"{}", "{\"status\":null}", "{\"status\":\"UNKNOWN\"}"}) {
-            mvc.perform(patch("/api/tasks/1/status").contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(patch("/api/tasks/1/status").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }
         mvc.perform(get("/api/tasks/1"))
@@ -106,11 +109,11 @@ class TaskApiTests extends DatabaseTests {
 
     @Test
     void createsDueDate() throws Exception {
-        mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/tasks").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Check labels\",\"dueDate\":\"2030-06-15\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.dueDate").value("2030-06-15"));
-        mvc.perform(patch("/api/tasks/1/status").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(patch("/api/tasks/1/status").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"DONE\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.dueDate").value("2030-06-15"));
@@ -129,7 +132,7 @@ class TaskApiTests extends DatabaseTests {
     @Test
     void rejectsBadDueDate() throws Exception {
         for (String date : new String[]{"tomorrow", "2030-13-01", "2030-02-30"}) {
-            mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+            mvc.perform(post("/api/tasks").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"title\":\"Check labels\",\"dueDate\":\"" + date + "\"}"))
                     .andExpect(status().isBadRequest());
         }
@@ -138,7 +141,7 @@ class TaskApiTests extends DatabaseTests {
     }
 
     private void create() throws Exception {
-        mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/tasks").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"  Restock dairy  \"}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/tasks/1"))

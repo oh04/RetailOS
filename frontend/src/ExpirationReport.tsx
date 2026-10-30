@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Product } from './types'
+import { apiFetch } from './api'
 
 function ExpirationReport() {
     const [through, setThrough] = useState('')
@@ -9,23 +10,23 @@ function ExpirationReport() {
     const [error, setError] = useState('')
     const [hasLoaded, setHasLoaded] = useState(false)
 
-    async function loadReport(){
+    async function loadReport() {
         setLoading(true)
         setError('')
         setProducts([])
         setHasLoaded(false)
-        try{
-            const response = await fetch(`/api/products/expiring?through=${through}`)
-            if(!response.ok){
+        try {
+            const response = await apiFetch(`/api/products/expiring?through=${through}`)
+            if (!response.ok) {
                 throw new Error('Request failed')
             }
             const data: Product[] = await response.json()
             setProducts(data)
             setReportedThrough(through)
             setHasLoaded(true)
-        }catch{
+        } catch {
             setError("Could not load the expiration report.")
-        }finally{
+        } finally {
             setLoading(false)
         }
     }
@@ -39,7 +40,7 @@ function ExpirationReport() {
             }}>
                 <label>
                     Expiring on or before
-                    <input type="date" value={through} onChange={(event) => setThrough(event.target.value)} required/>
+                    <input type="date" value={through} onChange={(event) => setThrough(event.target.value)} required />
                 </label>
                 <button type="submit" disabled={loading}>
                     {loading ? 'Loading…' : 'Run report'}
@@ -69,7 +70,7 @@ function ExpirationReport() {
                 </tbody>
             </table>
         </section>
-  )
+    )
 }
 
 export default ExpirationReport

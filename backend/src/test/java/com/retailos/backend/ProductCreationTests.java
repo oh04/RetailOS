@@ -1,5 +1,7 @@
 package com.retailos.backend;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@WithMockUser(roles = "MANAGER")
 class ProductCreationTests extends DatabaseTests {
 
     @Autowired
@@ -23,7 +26,7 @@ class ProductCreationTests extends DatabaseTests {
     @Test
     void createsProduct() throws Exception {
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"  Orange Juice  ","quantity":8}
                                 """))
@@ -45,7 +48,7 @@ class ProductCreationTests extends DatabaseTests {
     @Test
     void assignsIds() throws Exception {
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Apples","quantity":0}
                                 """))
@@ -54,7 +57,7 @@ class ProductCreationTests extends DatabaseTests {
                 .andExpect(jsonPath("$.quantity").value(0));
 
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Bananas","quantity":5}
                                 """))
@@ -73,7 +76,7 @@ class ProductCreationTests extends DatabaseTests {
 
         for (String request : requests) {
             mockMvc.perform(post("/api/products")
-                            .contentType(MediaType.APPLICATION_JSON)
+                            .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                             .content(request))
                     .andExpect(status().isBadRequest());
         }
@@ -92,7 +95,7 @@ class ProductCreationTests extends DatabaseTests {
 
         for (String request : requests) {
             mockMvc.perform(post("/api/products")
-                            .contentType(MediaType.APPLICATION_JSON)
+                            .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                             .content(request))
                     .andExpect(status().isBadRequest());
         }
@@ -103,7 +106,7 @@ class ProductCreationTests extends DatabaseTests {
     @Test
     void rejectsBadJson() throws Exception {
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{not-json"))
                 .andExpect(status().isBadRequest());
 

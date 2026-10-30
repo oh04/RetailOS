@@ -29,3 +29,9 @@ export type StockAdjustment = {
   resultingQuantity: number
   createdAt: string
 }
+
+export type UserResponse = {
+  id: number
+  email: string
+  role: 'EMPLOYEE' | 'MANAGER'
+}

@@ -15,47 +15,55 @@ import jakarta.persistence.Table;
 @Table(name = "tasks")
 public class TaskEntity {
 
-    @GeneratedValue(strategy = GenerationType.IDENTITY) @Id private Long id;
-    @Column(nullable = false, columnDefinition = "text") private String title;
-    @Enumerated(EnumType.STRING) @Column(nullable = false, columnDefinition = "text") private TaskStatus status = TaskStatus.TODO;
-    @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
-    @Column(name = "due_date") private LocalDate dueDate;
-    
-    protected TaskEntity() {}
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    private Long id;
+    @Column(nullable = false, columnDefinition = "text")
+    private String title;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "text")
+    private TaskStatus status = TaskStatus.TODO;
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt = Instant.now();
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 
-    public TaskEntity(String title){
+    protected TaskEntity() {
+    }
+
+    public TaskEntity(String title) {
         this.title = title;
     }
 
-    public Long getId(){
+    public Long getId() {
         return id;
     }
 
-    public String getTitle(){
+    public String getTitle() {
         return title;
     }
 
-    public TaskStatus getStatus(){
+    public TaskStatus getStatus() {
         return status;
     }
 
-    public Instant getCreatedAt(){
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDate getDueDate(){
+    public LocalDate getDueDate() {
         return dueDate;
     }
 
-    public void setTitle(String title){
+    public void setTitle(String title) {
         this.title = title;
     }
 
-    public void setStatus(TaskStatus status){
+    public void setStatus(TaskStatus status) {
         this.status = status;
     }
-    
-    public void setDueDate(LocalDate dueDate){
+
+    public void setDueDate(LocalDate dueDate) {
         this.dueDate = dueDate;
     }
 }

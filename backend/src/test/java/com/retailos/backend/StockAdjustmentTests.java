@@ -1,5 +1,7 @@
 package com.retailos.backend;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(roles = "MANAGER")
 class StockAdjustmentTests extends DatabaseTests {
     @Autowired
     private MockMvc mvc;
@@ -25,7 +28,7 @@ class StockAdjustmentTests extends DatabaseTests {
     @Test
     void sellsStock() throws Exception {
         mvc.perform(post("/api/products/1/adjustments")
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"change\":-2}"))
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"change\":-2}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Whole Milk"))
@@ -73,7 +76,7 @@ class StockAdjustmentTests extends DatabaseTests {
 
     private void adjust(long id, String body, int expectedStatus) throws Exception {
         mvc.perform(post("/api/products/{id}/adjustments", id)
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().is(expectedStatus));
     }
 

@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import type { InventorySummary } from './types'
+import { apiFetch } from './api'
 
-function SummaryPanel(){
+function SummaryPanel() {
     const [summary, setSummary] = useState<InventorySummary | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
-    async function loadSummary(){
+    async function loadSummary() {
 
         try {
             setLoading(true)
             setError('')
-            const response = await fetch('/api/products/summary?threshold=10')
+            const response = await apiFetch('/api/products/summary?threshold=10')
             if (!response.ok) {
                 throw new Error('Request failed')
             }
@@ -35,16 +36,16 @@ function SummaryPanel(){
             {summary !== null && (
                 <div className="summary-grid">
                     <article className="summary-card">
-                    <h3>Products</h3>
-                    <p>{summary.productCount}</p>
+                        <h3>Products</h3>
+                        <p>{summary.productCount}</p>
                     </article>
                     <article className="summary-card">
-                    <h3>Total units</h3>
-                    <p>{summary.totalUnits}</p>
+                        <h3>Total units</h3>
+                        <p>{summary.totalUnits}</p>
                     </article>
                     <article className="summary-card">
-                    <h3>Low stock - 10 or fewer</h3>
-                    <p>{summary.lowStockCount}</p>
+                        <h3>Low stock - 10 or fewer</h3>
+                        <p>{summary.lowStockCount}</p>
                     </article>
                 </div>
             )}

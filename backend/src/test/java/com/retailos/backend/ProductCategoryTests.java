@@ -1,5 +1,7 @@
 package com.retailos.backend;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(roles = "MANAGER")
 class ProductCategoryTests extends DatabaseTests {
     @Autowired private MockMvc mvc;
     @Autowired private JdbcTemplate jdbc;
@@ -30,7 +33,7 @@ class ProductCategoryTests extends DatabaseTests {
 
     @Test
     void defaultsCategory() throws Exception {
-        mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Apples\",\"quantity\":3}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.category").value("Uncategorized"));
@@ -40,7 +43,7 @@ class ProductCategoryTests extends DatabaseTests {
     }
     @Test
     void createsCategory() throws Exception {
-        mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Yogurt\",\"quantity\":5,\"category\":\"  Dairy  \"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.category").value("Dairy"));
@@ -50,13 +53,13 @@ class ProductCategoryTests extends DatabaseTests {
 
     @Test
     void updatesCategory() throws Exception {
-        mvc.perform(put("/api/products/1").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/products/1").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Whole Milk\",\"quantity\":24,\"category\":\"  Dairy  \"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.category").value("Dairy"));
-        mvc.perform(put("/api/products/1").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/products/1").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Fresh Milk\",\"quantity\":24}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.category").value("Dairy"));
-        mvc.perform(put("/api/products/1").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/products/1").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Fresh Milk\",\"quantity\":24,\"category\":null}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.category").value("Dairy"));
         mvc.perform(get("/api/products/1"))
@@ -69,9 +72,9 @@ class ProductCategoryTests extends DatabaseTests {
     void rejectsBlankCategory() throws Exception {
         for (String category : new String[]{"", "   "}) {
             String body = "{\"name\":\"Milk\",\"quantity\":24,\"category\":\"" + category + "\"}";
-            mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
-            mvc.perform(put("/api/products/1").contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(put("/api/products/1").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }
         mvc.perform(get("/api/products"))
